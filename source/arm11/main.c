@@ -30,28 +30,37 @@
 
 int main(void)
 {
-	Result res = oafParseConfigEarly();
-	GFX_init(GFX_BGR8, GFX_BGR565, GFX_TOP_2D);
-	changeBacklight(0); // Apply backlight config.
-	consoleInit(GFX_LCD_BOT, NULL);
-	//CODEC_init();
-
-	if(res == RES_OK && (res = oafInitAndRun()) == RES_OK)
+	bool done = false;
+	while(done == false)
 	{
-		while(1)
+		Result res = oafParseConfigEarly();
+		GFX_init(GFX_BGR8, GFX_BGR565, GFX_TOP_2D);
+		changeBacklight(0); // Apply backlight config.
+		consoleInit(GFX_LCD_BOT, NULL);
+		//CODEC_init();
+	
+		if(res == RES_OK && (res = oafInitAndRun()) == RES_OK)
 		{
-			hidScanInput();
-			if(hidGetExtraKeys(0) & (KEY_POWER_HELD | KEY_POWER)) break;
-
-			oafUpdate();
+			while(1)
+			{
+				hidScanInput();
+				if (hidKeysHeld() == (KEY_R | KEY_Y) && hidKeysDown() != 0) break;
+				if (hidKeysHeld() == (KEY_L | KEY_Y) && hidKeysDown() != 0)
+				{
+					done = true;
+					break;
+				}
+	
+				oafUpdate();
+			}
+	
+			oafFinish();
 		}
-
-		oafFinish();
+		else printErrorWaitInput(res, 0);
+	
+		CODEC_deinit();
+		GFX_deinit();
 	}
-	else printErrorWaitInput(res, 0);
-
-	CODEC_deinit();
-	GFX_deinit();
 	fUnmount(FS_DRIVE_SDMC); // TODO: Move elsewhere. __systemDeinit() already calls it.
 
 	power_off();
